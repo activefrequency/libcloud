@@ -106,13 +106,15 @@ class CloudFilesConnection(OpenStackBaseConnection):
     auth_url = AUTH_URL
     _auth_version = '2.0'
 
-    def __init__(self, user_id, key, secure=True, **kwargs):
+    def __init__(self, user_id, key, secure=True,
+                 use_internal_url=False, use_cdn_url_https=False, **kwargs):
         super(CloudFilesConnection, self).__init__(user_id, key, secure=secure,
                                                    **kwargs)
         self.api_version = API_VERSION
         self.accept_format = 'application/json'
         self.cdn_request = False
-        self.endpoint_url = 'internalURL' if 'use_internal_url' in kwargs else 'publicURL'
+        self.endpoint_url = 'internalURL' if use_internal_url else 'publicURL'
+        self.use_cdn_url_https = use_cdn_url_https
 
     def get_endpoint(self):
         region = self._ex_force_service_region.upper()
@@ -199,7 +201,7 @@ class CloudFilesStorageDriver(StorageDriver, OpenStackDriverMixin):
     supports_chunked_encoding = True
 
     def __init__(self, key, secret=None, secure=True, host=None, port=None,
-                 region='ord', **kwargs):
+                 region='ord', use_internal_url=False, use_cdn_url_https=False, **kwargs):
         """
         @inherits:  :class:`StorageDriver.__init__`
 
@@ -211,6 +213,8 @@ class CloudFilesStorageDriver(StorageDriver, OpenStackDriverMixin):
             region = kwargs['ex_force_service_region']
             
 
+        self.use_internal_url = use_internal_url
+        self.use_cdn_url_https = use_cdn_url_https
         OpenStackDriverMixin.__init__(self, (), **kwargs)
         super(CloudFilesStorageDriver, self).__init__(key=key, secret=secret,
                                                       secure=secure, host=host,
@@ -259,21 +263,24 @@ class CloudFilesStorageDriver(StorageDriver, OpenStackDriverMixin):
         raise LibcloudError('Unexpected status code: %s' % (response.status))
 
     def get_container_cdn_url(self, container):
-        if not getattr(self, '_container_cdn_url', None):
-            container_name = container.name
-            response = self.connection.request('/%s' % (container_name),
-                                               method='HEAD',
-                                               cdn_request=True)
 
-            if response.status == httplib.NO_CONTENT:
-                self._container_cdn_url = response.headers['x-cdn-uri']
-            elif response.status == httplib.NOT_FOUND:
-                raise ContainerDoesNotExistError(value='',
-                                                 container_name=container_name,
-                                                 driver=self)
-            else:
-                raise LibcloudError('Unexpected status code: %s' % (response.status))
-        return self._container_cdn_url
+        cdn_uri = 'x-cdn-ssl-uri' if self.use_cdn_url_https else 'x-cdn-uri'
+            
+        container_name = container.name
+        response = self.connection.request('/%s' % (container_name),
+                                           method='HEAD',
+                                           cdn_request=True)
+
+        if response.status == httplib.NO_CONTENT:
+            try:
+                cdn_url = response.headers[cdn_uri]
+                return cdn_url
+            except KeyError:
+                raise LibcloudError('"%s" not found in header' % (cdn_uri))
+        elif response.status == httplib.NOT_FOUND:
+            raise ContainerDoesNotExistError(value='',
+                                             container_name=container_name,
+                                             driver=self)
 
     def get_object_cdn_url(self, obj):
         container_cdn_url = self.get_container_cdn_url(container=obj.container)
