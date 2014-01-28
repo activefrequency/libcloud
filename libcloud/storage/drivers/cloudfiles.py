@@ -107,14 +107,13 @@ class CloudFilesConnection(OpenStackBaseConnection):
     _auth_version = '2.0'
 
     def __init__(self, user_id, key, secure=True,
-                 use_internal_url=False, use_cdn_url_https=False, **kwargs):
+                 use_internal_url=False, **kwargs):
         super(CloudFilesConnection, self).__init__(user_id, key, secure=secure,
                                                    **kwargs)
         self.api_version = API_VERSION
         self.accept_format = 'application/json'
         self.cdn_request = False
         self.endpoint_url = 'internalURL' if use_internal_url else 'publicURL'
-        self.use_cdn_url_https = use_cdn_url_https
 
     def get_endpoint(self):
         region = self._ex_force_service_region.upper()
@@ -210,8 +209,7 @@ class CloudFilesStorageDriver(StorageDriver, OpenStackDriverMixin):
         """
         # This is here for backard compatibility
         if 'ex_force_service_region' in kwargs:
-            region = kwargs['ex_force_service_region']
-            
+            region = kwargs['ex_force_service_region'] 
 
         self.use_internal_url = use_internal_url
         self.use_cdn_url_https = use_cdn_url_https
@@ -829,7 +827,6 @@ class CloudFilesStorageDriver(StorageDriver, OpenStackDriverMixin):
         kwargs = self.openstack_connection_kwargs()
         kwargs['ex_force_service_region'] = self.region
         kwargs['use_internal_url'] = self.use_internal_url
-        kwargs['use_cdn_url_https'] = self.use_cdn_url_https
         return kwargs
 
 
