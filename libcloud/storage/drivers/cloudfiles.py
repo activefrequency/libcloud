@@ -828,6 +828,8 @@ class CloudFilesStorageDriver(StorageDriver, OpenStackDriverMixin):
     def _ex_connection_class_kwargs(self):
         kwargs = self.openstack_connection_kwargs()
         kwargs['ex_force_service_region'] = self.region
+        kwargs['use_internal_url'] = self.use_internal_url
+        kwargs['use_cdn_url_https'] = self.use_cdn_url_https
         return kwargs
 
 
