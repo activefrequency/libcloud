@@ -106,7 +106,7 @@ class CloudFilesConnection(OpenStackBaseConnection):
     auth_url = AUTH_URL
     _auth_version = '2.0'
     INTERNAL_URL = 'internalURL'
-    EXTERNAL_URL = 'externalURL'
+    EXTERNAL_URL = 'publicURL'
 
     def __init__(self, user_id, key, secure=True,
                  use_internal_url=False, **kwargs):
