@@ -105,6 +105,8 @@ class CloudFilesConnection(OpenStackBaseConnection):
     
     auth_url = AUTH_URL
     _auth_version = '2.0'
+    INTERNAL_URL = 'internalURL'
+    EXTERNAL_URL = 'externalURL'
 
     def __init__(self, user_id, key, secure=True,
                  use_internal_url=False, **kwargs):
@@ -113,7 +115,7 @@ class CloudFilesConnection(OpenStackBaseConnection):
         self.api_version = API_VERSION
         self.accept_format = 'application/json'
         self.cdn_request = False
-        self.endpoint_url = 'internalURL' if use_internal_url else 'publicURL'
+        self.use_internal_url = use_internal_url
 
     def get_endpoint(self):
         region = self._ex_force_service_region.upper()
@@ -132,14 +134,16 @@ class CloudFilesConnection(OpenStackBaseConnection):
                 'Auth version "%s" not supported' % (self._auth_version))
 
         # if this is a CDN request, return the cdn url instead
+        endpoint_url = self.INTERNAL_URL if self.use_internal_url else self.EXTERNAL_URL
         if self.cdn_request:
             ep = cdn_ep
+            endpoint_url = self.EXTERNAL_URL  # no internal URL for cdn_ep
 
         if not ep:
             raise LibcloudError('Could not find specified endpoint')
 
-        if self.endpoint_url in ep:
-            return ep[self.endpoint_url]
+        if endpoint_url in ep:
+            return ep[endpoint_url]
         else:
             raise LibcloudError('Could not find specified endpoint')
 
