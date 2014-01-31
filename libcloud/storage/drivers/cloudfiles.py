@@ -269,6 +269,9 @@ class CloudFilesStorageDriver(StorageDriver, OpenStackDriverMixin):
         cdn_uri = 'x-cdn-ssl-uri' if self.use_cdn_url_https else 'x-cdn-uri'
             
         container_name = container.name
+        return self.get_container_cdn_url_from_name(container_name)
+
+    def get_container_cdn_url_from_name(self, container_name):
         response = self.connection.request('/%s' % (container_name),
                                            method='HEAD',
                                            cdn_request=True)
